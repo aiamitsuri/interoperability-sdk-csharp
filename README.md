@@ -100,6 +100,106 @@ Dynamic Usage
 
 Concurrent Usage
 
-    ramramjiramramjuramramji
-    ramramjiramramjuramramji
-    ramramjiramramjuramramji
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using SDK = InteroperabilityWrapperRnet.InteroperabilityWrapperRnet;
+        
+        namespace Bhilani.Interoperability;
+        
+        public record SDKItem(
+            [property: JsonPropertyName("title")] string Title
+        );
+        
+        public record Pagination(
+            [property: JsonPropertyName("total_pages")] int TotalPages
+        );
+        
+        public record FetchResponse(
+            [property: JsonPropertyName("data")] List<SDKItem> Data,
+            [property: JsonPropertyName("pagination")] Pagination Pagination
+        );
+        
+        public record Result<T>(T? Value, Exception? Error)
+        {
+            public bool IsSuccess => Error == null;
+            public static Result<T> Success(T value) => new(value, null);
+            public static Result<T> Failure(Exception e) => new(default, e);
+        }
+        
+        public class DotnetSDKit
+        {
+            public async Task<List<Result<string>>> FetchPagesAsync(IEnumerable<int> pageRange)
+            {
+                var tasks = pageRange.Select(async page =>
+                {
+                    await Task.Delay(Random.Shared.Next(50, 251));
+        
+                    try
+                    {
+                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                        var paramsJson = $"{{\"page\": \"{page}\"}}";
+        
+                        var response = await Task.Run(() => SDK.FetchForDotnet(paramsJson), cts.Token);
+                        
+                        return Result<string>.Success(response);
+                    }
+                    catch (Exception ex)
+                    {
+                        return Result<string>.Failure(ex);
+                    }
+                });
+        
+                return (await Task.WhenAll(tasks)).ToList();
+            }
+        }
+        
+        class Program
+        {
+            static async Task Main()
+            {
+                var sdk = new DotnetSDKit();
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        
+                Console.WriteLine("--- Bhilani Interop SDK (.NET Concurrency) ---\n");
+        
+                var results = await sdk.FetchPagesAsync(Enumerable.Range(1, 5));
+        
+                for (int i = 0; i < results.Count; i++)
+                {
+                    int pageNum = i + 1;
+                    var result = results[i];
+        
+                    if (result.IsSuccess && result.Value != null)
+                    {
+                        try
+                        {
+                            var parsed = JsonSerializer.Deserialize<FetchResponse>(result.Value, jsonOptions);
+                            int totalPages = parsed?.Pagination.TotalPages ?? 0;
+        
+                            if (parsed?.Data == null || parsed.Data.Count == 0 || pageNum > totalPages)
+                            {
+                                Console.WriteLine($"Page {pageNum}: Success (No Data - Server has {totalPages} pages)");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Page {pageNum}: Success");
+                                foreach (var item in parsed.Data)
+                                {
+                                    Console.WriteLine($"  - Title: {item.Title}");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Page {pageNum}: Success (JSON Parsing Failed: {ex.Message})");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Page {pageNum}: Failed ({result.Error?.Message})");
+                    }
+                }
+            }
+        }
+
+<img width="843" height="437" alt="Screenshot (204)" src="https://github.com/user-attachments/assets/0c36ae36-43fc-47d5-add4-130062f5391a" />
