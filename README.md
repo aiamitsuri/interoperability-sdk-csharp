@@ -1,4 +1,4 @@
-# BHILANI Interop SDK Suite by kantini, chanchali
+Welcome to **BHILANI**, an **Agentic Interop SDK Suite** by **Kantini, Chanchali**
 
 Run SDK
 
@@ -9,32 +9,27 @@ Basic Usage
     using System.Text.Json;
     using SDK = InteroperabilityWrapperRnet.InteroperabilityWrapperRnet;
     
-    public class DotnetSDKit
-    {
-        public void RunDemo()
+    string paramsJson = """
         {
-            string paramsJson = "{\"page\": \"1\"}";
-    
-            Console.WriteLine(".NET SDK");
-    
-            try 
-            {
-                string response = SDK.FetchForDotnet(paramsJson);
-                Console.WriteLine(response);
-            }
-            catch (Exception e) 
-            {
-                Console.WriteLine($"Error: {e.Message}");
-            }
+          "language": null,
+          "integration": null,
+          "crates": null,
+          "developmentkit": null,
+          "page": "1",
+          "ids": null
         }
+        """;
+    
+    Console.WriteLine(".NET SDK");
+    
+    try 
+    {
+        string response = SDK.FetchForDotnet(paramsJson);
+        Console.WriteLine(response);
     }
-    
-    class Program
+    catch (Exception e) 
     {
-        static void Main()
-        {
-            new DotnetSDKit().RunDemo();
-        }
+        Console.WriteLine($"Error: {e.Message}");
     }
 
 Dynamic Usage
